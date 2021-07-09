@@ -91,7 +91,6 @@ var wcmatch = require('wildcard-match');
 var fs = require('fs');
 var ip6addr = require('ip6addr');
 const path = require('path');
-const { STATUS_CODES } = require('http');
 
 const PORT = process.env.PROXY_PORT | 443;
 const MAX_CALLS_PER_SECOND = process.env.PROXY_MAX_CALLS_PER_SECOND | 1000;
@@ -128,9 +127,9 @@ try {
 // Load any dynamic modules in the ./paths directory
 console.log("Loading dynamic proxy mapping data");
 var pathModules = fs.readdirSync('./paths');
-for(mod of pathModules){
+for(let mod of pathModules){
   var exp = require('./' + path.join('paths', mod));
-  for(key in exp){
+  for(let key in exp){
     console.log("Mapping " + key);
     pathMaps[key] = exp[key];
   }
@@ -139,7 +138,7 @@ for(mod of pathModules){
 // Create a list of known-good targets
 var buildPathMatches = () =>{
   var m = [];
-  for(const s of Object.keys(pathMaps)){
+  for(let s of Object.keys(pathMaps)){
     console.log("Building match for " + s);
     m.push(wcmatch(s));
   }
@@ -149,14 +148,14 @@ var buildPathMatches = () =>{
 // Create a list of URL-to-server mappings
 var buildTargets = () => {
   var lm = [];  // array of regexes to determine if a match exists
-  for(var s in pathMaps){
+  for(let s in pathMaps){
     console.log("Building path for " + s + " to " + pathMaps[s].to);
     lm.push(wcmatch(s));
   }
   return (urlString, req) => {
     var myUrl = new URL("https://192.0.2.0" + urlString);
     var goodMatches = [];
-    for(const m of lm){
+    for(let m of lm){
       if(m(myUrl.pathname)){
         // check to see if it matches the hostname
         var t = pathMaps[m.pattern];
@@ -167,7 +166,7 @@ var buildTargets = () => {
           // test hostnames          
           var reqHost = req.headers.host;
           if(reqHost != undefined){
-            for(hn of t["hostnames"]){
+            for(let hn of t["hostnames"]){
               if(hn.toLowerCase() == reqHost.toLowerCase()){
                 goodMatches.push(pathMaps[m.pattern]);
               }
@@ -180,7 +179,7 @@ var buildTargets = () => {
     // check goodMatches for highest-priority match
     var currPri = 999999;
     var bestMatch = undefined;
-    for(currMatch of goodMatches){
+    for(let currMatch of goodMatches){
       if(bestMatch == undefined){
         bestMatch = currMatch;
       }
@@ -201,7 +200,7 @@ var buildStaticResponses = () => {
   var staticResponses = {};
   // Find any static error pages
   var files = fs.readdirSync(STATIC_RESPONSE_DIR);
-  for(file of files){
+  for(let file of files){
     var code = file.split('.')[0];
     var data = fs.readFileSync(path.join(STATIC_RESPONSE_DIR,file));
     staticResponses[code.toString()] = data;
@@ -266,7 +265,7 @@ wsProxy.on('proxyReq', function(proxyReq, req, res, options){
       localTgt.rewriteRequest(proxyReq);
     }
     if(localTgt["rewriteResponse"] != undefined && typeof(localTgt["rewriteResponse"]) == 'function'){
-      localTgt.rewriteResponse(proxyRes, req, res, options);
+      localTgt.rewriteResponse(proxyReq, req, res, options);
     }
   }
 });
@@ -300,7 +299,7 @@ function isViolatingDDOS(req, res){
 function isDisallowed(req, res){
   var myUrl = new URL("https://192.0.2.0" + req.url);
   var disallowed = true;
-  for(const m of matches){
+  for(let m of matches){
     if(m(myUrl.pathname)){
       disallowed = false;
     }    
@@ -343,7 +342,7 @@ function isBannedIP(tgt, req, res){
       if(req.headers['x-forwarded-for'] != undefined){
         proxiedIp = ip6addr.parse(req.headers['x-forwarded-for']);
       }
-      for(ip of tgt.allowedCidrs){
+      for(let ip of tgt.allowedCidrs){
         var allowed = ip6addr.createCIDR(ip);
         if(allowed.contains(clientIp)){
           if(tgt["ignoreProxiedIP"] != undefined && tgt["ignoreProxiedIP"] == true){
@@ -383,7 +382,7 @@ function enableCors(tgt, req, res) {
 		res.setHeader('access-control-allow-origin', req.headers.origin);
 		res.setHeader('access-control-allow-credentials', 'true');
 	}
-};
+}
 
 
 var httpServer = https.createServer(tls, function(req, res){  
@@ -404,7 +403,7 @@ var httpServer = https.createServer(tls, function(req, res){
   var routeTo = undefined;
   
   if(typeof(tgt.to) === typeof(function(){})){
-    var ct = "text/plain";
+    let ct = "text/plain";
     if(tgt["contentType"] != undefined){
       ct = tgt["contentType"];
     }
@@ -432,7 +431,7 @@ var httpServer = https.createServer(tls, function(req, res){
     if(routeTo.startsWith('file:')){
       try {
         var data = fs.readFileSync(routeTo.substring(5));
-        var ct = "text/plain";
+        let ct = "text/plain";
         if(tgt["contentType"] != undefined){
           ct = tgt["contentType"];
         }
@@ -498,20 +497,10 @@ httpServer.on('upgrade', function(req, socket, head){
     var tgt = getTargetUrl(req.url, req);  
     if(tgt == undefined){
       console.log("STREAM UPGRADE BLOCKED");
-      if(!staticResponse(res, 404)){
-        res.writeHead(404, {'Content-Type':'text/plain'});
-        res.write('not found');
-        res.end();
-      }
       return;
     }
     var routeTo = tgt.to;
-    if(isBannedIP(tgt, req)){
-      if(!staticResponse(res, 403)){
-        res.writeHead(403, {'Content-Type':'text/plain'});
-        res.write('client not allowed');
-        res.end();
-      }
+    if(isBannedIP(tgt, req)){      
       return;
     }
 
@@ -520,12 +509,7 @@ httpServer.on('upgrade', function(req, socket, head){
         wsProxy.ws(req, socket, head, {target: routeTo, secure: (tgt.secure ? tgt.secure : false)});
       } catch(err){
         console.log("Error!");
-        console.log(err);
-        if(!staticResponse(res, 502)){
-          res.writeHead(502, {'Content-Type':'text/plain'});
-          res.write('server error');
-          res.end();
-        }
+        console.log(err);        
         return;
       }
     }    

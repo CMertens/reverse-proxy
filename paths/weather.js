@@ -25,7 +25,7 @@ function callWeather(queryUrl){
                 let temps = 0;
                 let lowTemp = 9999;
                 let highTemp = -9999;
-                for(dp of jsonResponse.dataseries){
+                for(const dp of jsonResponse.dataseries){
                     temps = temps + dp.temp2m;
                     if(dp.temp2m > highTemp){
                         highTemp = dp.temp2m;
@@ -54,7 +54,7 @@ module.exports["/v1/api/weather"] = {
         var reqUrl = url.parse(req.url, true);
         var query = reqUrl.query;
         var queryUrl = WEATHER_URL;
-        for(q in query){
+        for(const q in query){
             queryUrl = queryUrl + '&' + q + "=" + query[q];
         }
         console.log("Sending to " + queryUrl);

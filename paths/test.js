@@ -13,6 +13,5 @@ module.exports["/v1/api/test"] = {
     "rewriteResponse":function(proxyRes, req, res, options){
         console.log("Rewriting...");
         res.setHeader('x-test-header', 'hello world!');
-    },
-    "secure":false
+    }
 };

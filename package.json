@@ -17,5 +17,8 @@
     "ip6addr": "^0.2.3",
     "wildcard-match": "^5.1.2",
     "ws": "^7.5.2"
+  },
+  "devDependencies": {
+    "eslint": "^7.30.0"
   }
 }
