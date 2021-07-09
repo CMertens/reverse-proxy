@@ -1,0 +1,21 @@
+{
+  "name": "reverse-proxy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "http-proxy": "^1.18.1",
+    "ip-address": "^8.0.0",
+    "ip6addr": "^0.2.3",
+    "wildcard-match": "^5.1.2",
+    "ws": "^7.5.2"
+  }
+}

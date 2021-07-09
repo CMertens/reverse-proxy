@@ -1,0 +1,19 @@
+{
+  "/stream":{
+    "to":"ws://localhost:7777",
+    "secure":false,
+    "websocket":true
+  },
+  "/v1/api/*":{
+    "to":["http://localhost:5555","http://localhost:6666"],
+    "secure":false,
+    "allowedCidrs":["127.0.0.1/8"],
+    "ignoreProxiedIP":true,
+    "enableCors": true,
+    "hostnames":["api.example.com"]
+  },
+  "/favicon.ico":{
+    "to":"file:static/favicon.ico",
+    "contentType":"image/vnd.microsoft.icon"
+  }
+}
