@@ -18,7 +18,6 @@ compared to options such as NGINX and HAProxy.
 - PROXY_MAX_CALLS_PER_SECOND: Global rate limit for API calls.
 - PATH_FILE: Name of the "paths.json" file, as described below.
 
-
 #path.json
 A path.json file can define multiple paths. Each path uses a stringified regex value as the key, with 
 an object containing configuration data about the path.
@@ -68,7 +67,8 @@ var httpProxy = require('http-proxy');
 var wcmatch = require('wildcard-match');
 var fs = require('fs');
 var ip6addr = require('ip6addr');
-const path = require('path');
+var path = require('path');
+var tls = require('tls');
 
 const PORT = process.env.PROXY_PORT | 443;
 const MAX_CALLS_PER_SECOND = process.env.PROXY_MAX_CALLS_PER_SECOND | 1000;
@@ -80,9 +80,39 @@ const SSL_CERT_FILENAME = 'certificate.pem'
 
 const STATIC_RESPONSE_DIR = './responses';
 
+var sslKeys = {};
 var privateKey = fs.readFileSync(path.join(SSL_DIR, SSL_KEY_FILENAME));
 var certificate = fs.readFileSync(path.join(SSL_DIR, SSL_CERT_FILENAME));
-var tls = {key: privateKey, cert: certificate};
+var tlsKeys = {key: privateKey, cert: certificate};
+
+// Find any hostname-specific certificates
+for(const fname of fs.readdirSync(SSL_DIR)){
+  fs.stat(path.join(SSL_DIR, fname), (err, stats) => {
+    if(!err){
+      if(stats.isDirectory()){   
+        sslKeys[fname.toLowerCase()]= undefined;
+        let cred = tls.createSecureContext({
+          key : fs.readFileSync(path.join(SSL_DIR, fname,  SSL_KEY_FILENAME), 'utf8'),
+          cert : fs.readFileSync(path.join(SSL_DIR, fname, SSL_CERT_FILENAME), 'utf8')
+        });
+        sslKeys[fname] = cred;   
+      }
+    }
+  });
+}
+
+tlsKeys.SNICallback = function(hostname, cb){
+  let ckey = sslKeys[hostname.toLowerCase()];
+  if(ckey != undefined){
+    if(cb){
+      cb(null, ckey);
+    } else {
+      return(ckey);
+    }
+  } else {
+    cb();
+  }
+}
 
 // Track calls and drain DDOS protection counter each second
 var currentCalls = 0;
@@ -363,7 +393,7 @@ function enableCors(tgt, req, res) {
 }
 
 
-var httpServer = https.createServer(tls, function(req, res){  
+var httpServer = https.createServer(tlsKeys, function(req, res){  
   var modifiers = undefined;
   if(isViolatingDDOS(req, res) || isDisallowed(req, res)){
     return;

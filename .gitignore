@@ -123,4 +123,4 @@ tests/
 ssl/certificate.pem
 ssl/csr.csr
 ssl/key.pem
-static/
+ssl/api.example.com
