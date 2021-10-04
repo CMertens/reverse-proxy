@@ -63,8 +63,13 @@ module.exports["/v1/api/weather"] = {
             return innerResult;
         })(queryUrl);
         return result;
-    },  
+    },
+    "onRequest":function(req, res){
+        console.log("Checking");
+        return false;
+    },
     "contentType":"application/json",
     "secure":false,
-    "priority":1
+    "priority":1,
+    "enableCors":true
 };

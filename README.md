@@ -14,10 +14,11 @@ Required directories and files are:
 ./ssl
   ./ssl/certificate.pem
   ./ssl/key.pem
+  ./ssl/ca.pem (if using a custom CA)
 ./responses
 
 ## TLS Certificates
-In addition to the default certificate and key, you can also place hostname-specific TLS certs in the ./ssl directory. Simply name the directory for the hostname, and the proxy will pick up and serve the certificates. The proxy expects "certificate.pem" and "key.pem" for its certs.
+In addition to the default certificate and key, you can also place hostname-specific TLS certs in the ./ssl directory. Simply name the directory for the hostname, and the proxy will pick up and serve the certificates. The proxy expects "certificate.pem" and "key.pem" for its certs; if you're using a custom certificate authority, then include it as "ca.pem."
 
 ## Environment Variables
 - PROXY_PORT: Port number to listen on.
@@ -28,7 +29,7 @@ In addition to the default certificate and key, you can also place hostname-spec
 The path.json file, if included, can define multiple paths. Each path uses a stringified regex value as the key, with an object containing configuration data about the path.
 
 Each path object can take the following properties:
-  - to: (String, String[], Function, must be defined as an imported path module if a function is used Required. 
+  - to: (String, String[], Function, must be defined as an imported path module if a function is used. Required. 
     Where to proxy the request to. May be a string (servername or, if prefaced with 'file:', a local filename), array of strings (servernames), or a function that should return a string. If an array is provided, the proxy will randomly select one of the servers to contact; at this point, there is no concept of a proxy session, so round-robining between servers will not be "sticky" for a user.
 
   - priority: (Int) If included, indicates the relative priority of the path, where lower is higher-priority. If not included, the path is assumed to have the lowest possible priority, and will only be matched if it is the first match for the path.
@@ -50,6 +51,8 @@ Each path object can take the following properties:
   - contentType: (String) If included, will override content-type for static files and return functions.
   
   - enableCors: (Boolean) Add CORS headers to the response (non-Websockets only).
+
+  - onRequest: (Function, must be defined as an imported path module) A function to run before any response is returned. Useful for validating requirements such as X-Api-Key header values. Return "true" to allow processing to continue; any other response will trigger a 403 error to the client.
 
 ## Path Module Exports
 Path objects can also be defined in code by creating module exports in the ./paths directory. Simply add the path regex as a key to the "exports" object, with the value of a path object as described above, in any file in ./paths, and the proxy will auto-discover the new paths.

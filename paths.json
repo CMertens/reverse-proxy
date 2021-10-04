@@ -4,13 +4,24 @@
     "secure":false,
     "websocket":true
   },
+  "/v1/api/events":{
+    "contentType":"text/event-stream",
+    "headers":{
+      "connection":"keep-alive",
+      "Cache-Control": "no-cache"
+    }
+  },
   "/v1/api/*":{
     "to":["http://localhost:5555","http://localhost:6666"],
     "secure":false,
     "allowedCidrs":["127.0.0.1/8"],
     "ignoreProxiedIP":true,
     "enableCors": true,
-    "hostnames":["api.example.com"]
+    "hostnames":["api.example.com"],
+    "contentType":"application/json",
+    "headers":{
+      "x-test-header":"TEST"
+    }
   },
   "/favicon.ico":{
     "to":"file:static/favicon.ico",
